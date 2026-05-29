@@ -1,0 +1,256 @@
+{
+    "Asset Details": {
+        "Computer System": {
+            "Name": "kathir",
+            "Service Tag": "",
+            "Model": "ASUS TUF Gaming A17 FA706IHRB_FA706IHRB",
+            "Manufacturer": "System manufacturer",
+            "Bios": {
+                "Version": "FA706IHRB.307",
+                "Manufacturer": "American Megatrends Inc.",
+                "Date": "2022-12-28"
+            },
+            "RAM": {
+                "total": "7.42 GB",
+                "available": "1.24 GB",
+                "percent_used": "83.2%",
+                "details": [
+                    {
+                        "DeviceLocator": "DIMM 0"
+                    },
+                    {
+                        "Manufacturer": "Samsung"
+                    },
+                    {
+                        "PartNumber": "M471A1G44AB0-CWE"
+                    },
+                    {
+                        "SerialNumber": "50CCAFD8"
+                    }
+                ]
+            },
+            "CPU": {
+                "Manufacturer": "AuthenticAMD",
+                "Model": "AMD Ryzen 5 4600H with Radeon Graphics",
+                "Serial Number": "178BFBFF00860F01",
+                "Architecture": "AMD64",
+                "Cores": 6,
+                "Logical Processors": 12,
+                "Processor Speed (GHz)": "3001 MHz"
+            },
+            "Operating System": {
+                "Name": "Windows 11",
+                "System Type": "AMD64-based PC",
+                "Version": "10.0.26100",
+                "Build Number": "11",
+                "Service Pack": "0",
+                "Product ID": "D1BB5331-A60F-0547-9A99-86C77FFBDA6D",
+                "Registered To": "drago",
+                "User": "drago",
+                "Domain Name": "kathir"
+            }
+        },
+        "Site Information": {
+            "Site Name": "kathir",
+            "Country": "IN",
+            "City": "Chennai",
+            "Location": "",
+            "Asset Tag": "N6NRCX10977725C"
+        },
+        "Vendor & Warranty Information": {
+            "Vendor Name": "American Megatrends Inc.",
+            "Asset Created Date": "01 Jan, 1970 12:00 AM",
+            "Purchase Cost": "\u20b9",
+            "Purchase Date": "",
+            "Warranty Expiry Date": ""
+        },
+        "Geo Location": {
+            "Country": "IN",
+            "Region": "Tamil Nadu",
+            "City": "Chennai",
+            "ISP Provider": "AS24560 Bharti Airtel Ltd., Telemedia Services"
+        },
+        "IP Address": {
+            "Public IP": "223.178.82.123",
+            "Private IP": "58-11-22-84-30-34",
+            "DNS Servers": "192.168.73.40",
+            "DHCP Server": "192.168.73.40"
+        },
+        "Processor": {
+            "Manufacturer": "AuthenticAMD",
+            "Model": "AMD Ryzen 5 4600H with Radeon Graphics",
+            "Serial Number": "178BFBFF00860F01",
+            "Architecture": "AMD64",
+            "Cores": 6,
+            "Logical Processors": 12,
+            "Processor Speed (GHz)": "3001 MHz"
+        },
+        "Hard Disks": [
+            {
+                "Model": "SAMSUNG MZVLQ512HBLU-00B00",
+                "Serial Number": "0025_38D3_2148_B119.",
+                "Size (GB)": 476.94
+            }
+        ],
+        "Logical Drives": [
+            {
+                "Device ID": "C:\\",
+                "Volume Name": "OS",
+                "File System": "NTFS",
+                "Free Space (GB)": 6.92,
+                "Total Size (GB)": 200.73
+            },
+            {
+                "Device ID": "D:\\",
+                "Volume Name": "New",
+                "File System": "NTFS",
+                "Free Space (GB)": 91.82,
+                "Total Size (GB)": 252.96
+            },
+            {
+                "Device ID": "G:\\",
+                "Volume Name": "N/A",
+                "File System": "FAT32",
+                "Free Space (GB)": 0.0,
+                "Total Size (GB)": 15.0
+            }
+        ],
+        "Monitors": [
+            "BOE Monitor (ID: 2577) - 1920x1080"
+        ],
+        "User Accounts": [
+            "Administrator",
+            "DefaultAccount",
+            "drago",
+            "Guest",
+            "WDAGUtilityAccount",
+            "WsiAccount"
+        ],
+        "Network Adapters": [
+            {
+                "NIC Name": "Ethernet",
+                "MAC Address": "58-11-22-84-30-34",
+                "IP Address": "169.254.209.69",
+                "DHCP Enabled": 1,
+                "DHCP Server": "192.168.1.1",
+                "Connection Status": "Down",
+                "DNS Servers": "192.168.1.1"
+            },
+            {
+                "NIC Name": "Ethernet 2",
+                "MAC Address": "AE-DD-8B-CF-E8-65",
+                "IP Address": "192.168.73.50",
+                "DHCP Enabled": 1,
+                "DHCP Server": "192.168.1.1",
+                "Connection Status": "Up",
+                "DNS Servers": "192.168.1.1"
+            },
+            {
+                "NIC Name": "Local Area Connection* 1",
+                "MAC Address": "B6-8C-9D-A5-16-A5",
+                "IP Address": "169.254.31.6",
+                "DHCP Enabled": 1,
+                "DHCP Server": "192.168.1.1",
+                "Connection Status": "Down",
+                "DNS Servers": "192.168.1.1"
+            },
+            {
+                "NIC Name": "Local Area Connection* 2",
+                "MAC Address": "B6-8C-9D-A5-16-B5",
+                "IP Address": "169.254.110.248",
+                "DHCP Enabled": 1,
+                "DHCP Server": "192.168.1.1",
+                "Connection Status": "Down",
+                "DNS Servers": "192.168.1.1"
+            },
+            {
+                "NIC Name": "Wi-Fi",
+                "MAC Address": "B4-8C-9D-A5-16-95",
+                "IP Address": "192.168.1.8",
+                "DHCP Enabled": 1,
+                "DHCP Server": "192.168.1.1",
+                "Connection Status": "Down",
+                "DNS Servers": "192.168.1.1"
+            },
+            {
+                "NIC Name": "Bluetooth Network Connection",
+                "MAC Address": "B4-8C-9D-A5-16-94",
+                "IP Address": "169.254.69.215",
+                "DHCP Enabled": 1,
+                "DHCP Server": "192.168.1.1",
+                "Connection Status": "Down",
+                "DNS Servers": "192.168.1.1"
+            },
+            {
+                "NIC Name": "Loopback Pseudo-Interface 1",
+                "MAC Address": "127.0.0.1",
+                "IP Address": "127.0.0.1",
+                "DHCP Enabled": 1,
+                "DHCP Server": "192.168.1.1",
+                "Connection Status": "Up",
+                "DNS Servers": "192.168.1.1"
+            }
+        ],
+        "Audio Devices": [
+            {
+                "Name": "AMD High Definition Audio Device",
+                "Manufacturer": "Advanced Micro Devices"
+            },
+            {
+                "Name": "NVIDIA High Definition Audio",
+                "Manufacturer": "NVIDIA"
+            },
+            {
+                "Name": "Realtek High Definition Audio",
+                "Manufacturer": "Realtek"
+            },
+            {
+                "Name": "Steam Streaming Microphone",
+                "Manufacturer": "Valve Corporation Audio DDK"
+            },
+            {
+                "Name": "Steam Streaming Speakers",
+                "Manufacturer": "Valve Corporation Audio DDK"
+            },
+            {
+                "Name": "NVIDIA Virtual Audio Device (Wave Extensible) (WDM)",
+                "Manufacturer": "NVIDIA"
+            }
+        ],
+        "Camera Devices": [
+            {
+                "Name": "USB2.0 HD UVC WebCam",
+                "Manufacturer": "Microsoft"
+            }
+        ],
+        "Keyboard Devices": [
+            {
+                "Name": "Enhanced (101- or 102-key)",
+                "Manufacturer": null
+            }
+        ],
+        "Mice Devices": [
+            {
+                "Name": "HID-compliant mouse",
+                "Manufacturer": "Microsoft"
+            }
+        ],
+        "Printer Devices": [
+            {
+                "Name": "OneNote (Desktop)",
+                "DriverName": "Send to Microsoft OneNote 16 Driver",
+                "PortName": "nul:"
+            },
+            {
+                "Name": "Microsoft Print to PDF",
+                "DriverName": "Microsoft Print To PDF",
+                "PortName": "PORTPROMPT:"
+            },
+            {
+                "Name": "Fax",
+                "DriverName": "Microsoft Shared Fax Driver",
+                "PortName": "SHRFAX:"
+            }
+        ]
+    }
+}

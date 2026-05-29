@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Labor Report Generator</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      form {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-top: 10px;
+      }
+      input,
+      select,
+      button {
+        margin-top: 5px;
+        padding: 8px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Generate Labor Report</h1>
+    <form id="reportForm">
+      <label for="siteId">Site ID:</label>
+      <input type="text" id="siteId" name="siteId" required />
+
+      <label for="startDate">Start Date:</label>
+      <input type="date" id="startDate" name="startDate" required />
+
+      <label for="endDate">End Date:</label>
+      <input type="date" id="endDate" name="endDate" required />
+
+      <label for="laborCategory">Labor Category:</label>
+      <select id="laborCategory" name="laborCategory" required>
+        <option value="ALL">All</option>
+        <option value="Masonry">Masonry</option>
+        <option value="Carpenter">Carpentry</option>
+        <option value="Plumbing">Plumbing</option>
+        <!-- Add more categories as needed -->
+      </select>
+
+      <label for="subCategory">Subcategory (Optional):</label>
+      <input type="text" id="subCategory" name="subCategory" />
+
+      <button type="button" onclick="generateReport()">Generate Report</button>
+    </form>
+
+    <script>
+      async function generateReport() {
+        const form = document.getElementById("reportForm");
+        const formData = new FormData(form);
+
+        const payload = {
+          siteId: formData.get("siteId"),
+          startDate: formData.get("startDate"),
+          endDate: formData.get("endDate"),
+          laborCategory: formData.get("laborCategory"),
+          subCategory: formData.get("subCategory") || null,
+        };
+
+        try {
+          const response = await fetch(
+            "http://localhost:8000/api/reports/labourReport",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization:
+                  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbmdpbmVlcklkIjoiNjc4YzdkOGI2ZjM1MWU2YmY1MjkwN2ZlIiwic3VwZXJ2aXNvcklkIjoiNjc5MWMyZGNkNWQzMmFjOGE4NTIxODIyIiwicm9sZSI6IlN1cGVydmlzb3IiLCJpYXQiOjE3Mzc4OTMxMDcsImV4cCI6MTczNzkzNjMwN30.0HMcNKV6-J5lfV17K_dSZCk3358fjlDh9c30_ieNJ7c",
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "LaborReport.xlsx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+          } else {
+            const error = await response.json();
+            alert(`Error: ${error.message}`);
+          }
+        } catch (error) {
+          console.error("Error generating report:", error);
+          alert(
+            "Failed to generate the report. Check the console for more details."
+          );
+        }
+      }
+    </script>
+  </body>
+</html>

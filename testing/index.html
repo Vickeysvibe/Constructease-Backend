@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Backend Routes Testing</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        padding: 20px;
+      }
+      form {
+        margin-bottom: 20px;
+      }
+      input,
+      button,
+      select {
+        margin: 5px;
+        padding: 10px;
+        font-size: 14px;
+      }
+      .response {
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        white-space: pre-wrap;
+        background-color: #f9f9f9;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Test Backend Routes</h1>
+
+    <!-- Form to test getting all purchase orders for a site -->
+    <form id="getAllPosForm">
+      <h3>Get All Purchase Orders for a Site</h3>
+      <input type="text" id="siteIdPos" placeholder="Enter Site ID" required />
+      <button type="submit">Get Purchase Orders</button>
+    </form>
+
+    <!-- Form to test getting all purchase returns for a site -->
+    <form id="getAllPrsForm">
+      <h3>Get All Purchase Returns for a Site</h3>
+      <input type="text" id="siteIdPrs" placeholder="Enter Site ID" required />
+      <button type="submit">Get Purchase Returns</button>
+    </form>
+
+    <!-- Form to test getting a particular purchase order -->
+    <form id="getPoForm">
+      <h3>Get Particular Purchase Order</h3>
+      <input type="text" id="poid" placeholder="Enter PO ID" required />
+      <button type="submit">Get Purchase Order</button>
+    </form>
+
+    <!-- Form to test creating a purchase order -->
+    <form id="createPoForm">
+      <h3>Create Purchase Order</h3>
+      <input
+        type="text"
+        id="siteIdCreatePo"
+        placeholder="Enter Site ID"
+        required
+      />
+      <input type="text" id="vendorId" placeholder="Enter Vendor ID" required />
+      <input type="date" id="date" required />
+      <input
+        type="text"
+        id="transport"
+        placeholder="Enter Transport Info"
+        required
+      />
+      <textarea
+        id="order"
+        placeholder='Enter Order (JSON Format: [{"productId":"123", "quantity":2}])'
+        required
+      ></textarea>
+      <button type="submit">Create Purchase Order</button>
+    </form>
+
+    <!-- Response Section -->
+    <div id="response" class="response"></div>
+
+    <script>
+      const responseDiv = document.getElementById("response");
+
+      const handleResponse = async (url, method, body = null) => {
+        try {
+          const options = {
+            method,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization:
+                "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbmdpbmVlcklkIjoiNjc4YzdkOGI2ZjM1MWU2YmY1MjkwN2ZlIiwic3VwZXJ2aXNvcklkIjoiNjc5NjZkNjIyMGMwZWExMjhlZjlmYmE2Iiwicm9sZSI6IlN1cGVydmlzb3IiLCJpYXQiOjE3Mzc5NDg4MTEsImV4cCI6MTczNzk5MjAxMX0.kFBltlW-Bz3KGrBbGwCJ9sL6T1DUxC1zNCN2rAN1do0",
+            },
+          };
+          if (body) options.body = JSON.stringify(body);
+          const res = await fetch(url, options);
+          const data = await res.json();
+          responseDiv.textContent = JSON.stringify(data, null, 2);
+        } catch (err) {
+          responseDiv.textContent = `Error: ${err.message}`;
+        }
+      };
+
+      document
+        .getElementById("getAllPosForm")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          const siteId = document.getElementById("siteIdPos").value;
+          handleResponse(
+            `http://localhost:8000/api/purchase/getAllPos?siteId=${siteId}`,
+            "GET"
+          );
+        });
+
+      document
+        .getElementById("getAllPrsForm")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          const siteId = document.getElementById("siteIdPrs").value;
+          handleResponse(`/api/prs?siteId=${siteId}`, "GET");
+        });
+
+      document.getElementById("getPoForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const poid = document.getElementById("poid").value;
+        handleResponse(`/api/po/${poid}`, "GET");
+      });
+
+      document
+        .getElementById("createPoForm")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          const siteId = document.getElementById("siteIdCreatePo").value;
+          const vendorId = document.getElementById("vendorId").value;
+          const date = document.getElementById("date").value;
+          const transport = document.getElementById("transport").value;
+          const order = JSON.parse(document.getElementById("order").value);
+
+          handleResponse(
+            `http://localhost:8000/api/purchase/createPo?siteId=${siteId}`,
+            "POST",
+            {
+              vendorId,
+              date,
+              transport,
+              order,
+            }
+          );
+        });
+    </script>
+  </body>
+</html>
