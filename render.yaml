@@ -6,7 +6,7 @@ services:
     name: constructease-api
     runtime: docker
     branch: dev
-    plan: starter            # free also works but sleeps after 15 min idle (first request then takes ~1 min)
+    plan: free               # sleeps after 15 idle min: keep it awake with an uptime monitor on /healthz (README). starter = always on
     region: singapore        # closest Render region to India
     dockerfilePath: ./Dockerfile
     healthCheckPath: /healthz
@@ -34,5 +34,7 @@ services:
         value: "true"
       - key: GEOCODER_URL         # set to https://nominatim.openstreetmap.org/reverse to store addresses for check-ins
         value: ""
+      - key: NODE_OPTIONS         # free plan has 512 MB: keep Node's heap small so Chromium has room for PDFs
+        value: --max-old-space-size=256
       - key: LOG_LEVEL
         value: info

@@ -181,7 +181,15 @@ export async function htmlToPdf(html: string): Promise<Buffer> {
   const remote = Boolean(config.PDF_BROWSER_WS_ENDPOINT);
   const browser = remote
     ? await puppeteer.connect({ browserWSEndpoint: config.PDF_BROWSER_WS_ENDPOINT })
-    : await puppeteer.launch({ executablePath: chromePath, args: ["--disable-dev-shm-usage", ...(config.CHROME_NO_SANDBOX ? ["--no-sandbox", "--disable-setuid-sandbox"] : [])] });
+    : await puppeteer.launch({ executablePath: chromePath, args: [
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--disable-extensions",
+          "--no-first-run",
+          "--mute-audio",
+          ...(config.CHROME_NO_SANDBOX ? ["--no-sandbox", "--disable-setuid-sandbox", "--no-zygote"] : []),
+        ],
+      });
   let page: Awaited<ReturnType<typeof browser.newPage>> | undefined;
   try {
     page = await browser.newPage();

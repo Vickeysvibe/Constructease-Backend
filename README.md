@@ -46,6 +46,8 @@ npm run typecheck && npm run lint && npm test   # tests use an in-memory MongoDB
    or copy the old app's data: `MONGODB_URI='<atlas uri>' npm run migrate:legacy -- --source-uri "<old uri>" --dry-run`, then again without `--dry-run`.
 4. In the web app's `vercel.json`, forward `/api/:path*` to `https://<service>.onrender.com/api/:path*`.
 
+**Keeping the free plan awake.** Free services sleep after 15 minutes without traffic and take about a minute to wake. Create a free monitor at [UptimeRobot](https://uptimerobot.com) (HTTP(s), every 5 minutes) on `https://<service>.onrender.com/healthz`. One service running all month fits in Render's 750 free hours. Move to `starter` once people rely on it daily: free instances have 512 MB and a slow CPU, so PDFs take a few seconds.
+
 Notes: `TRUST_PROXY=2` because requests pass through Vercel's rewrite and Render's proxy (it makes login rate limits per real user, not per proxy). The `starter` plan is recommended; `free` works but sleeps after 15 idle minutes. For heavier PDF/export load, add a Render **Background Worker** from the same image with start command `node dist/worker.js` and set `RUN_JOBS_IN_API=false` on the web service.
 
 Any other container host works the same way: run the image as the API (default command) and optionally as a worker (`node dist/worker.js`). It needs `MONGODB_URI` (a replica set) and `JWT_ACCESS_SECRET`. Serverless platforms are not supported.
