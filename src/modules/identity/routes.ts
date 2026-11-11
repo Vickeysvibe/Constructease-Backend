@@ -53,18 +53,30 @@ async function sessionPayload(userId: Types.ObjectId, orgId: Types.ObjectId, ses
 /** Public auth routes (mounted before requireAuth). */
 export function authRouter() {
   const r = Router();
-  const loginLimiter = rateLimit({
+  const tooMany = (_req: unknown, _res: unknown, next: (err: AppError) => void) =>
+    next(new AppError(429, "RATE_LIMITED", "Too many attempts", "Wait a minute and try again."));
+  // Per email+IP: stops password guessing on one account without locking out colleagues behind the same office IP.
+  const perAccount = rateLimit({
     windowMs: 60_000,
     limit: config.LOGIN_RATE_LIMIT_PER_MIN,
     standardHeaders: "draft-7",
     legacyHeaders: false,
-    handler: (_req, _res, next) =>
-      next(new AppError(429, "RATE_LIMITED", "Too many attempts", "Wait a minute and try again.")),
+    keyGenerator: (req) => `${req.ip}|${String((req.body as { email?: unknown })?.email ?? "").trim().toLowerCase()}`,
+    handler: tooMany,
+  });
+  // Per IP: a ceiling against trying many accounts from one address.
+  const perIp = rateLimit({
+    windowMs: 60_000,
+    limit: config.LOGIN_RATE_LIMIT_PER_MIN * 10,
+    standardHeaders: false,
+    legacyHeaders: false,
+    handler: tooMany,
   });
 
   r.post(
     "/login",
-    loginLimiter,
+    perIp,
+    perAccount,
     handler({ body: z.object({ email, password: z.string().min(1).max(200) }) }, async ({ body, req, res }) => {
       const invalid = new AppError(401, "INVALID_CREDENTIALS", "Sign-in failed", "Email or password is incorrect.");
       const user = await User.findOne({ email: body.email })

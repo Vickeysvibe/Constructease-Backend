@@ -20,9 +20,14 @@ const schema = z.object({
     .transform((s) => s.split(",").map((o) => o.trim()).filter(Boolean)),
   COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).default("lax"),
   COOKIE_SECURE: bool,
+  /** failed-login budget per minute for one email from one IP; the per-IP ceiling is 10× this */
   LOGIN_RATE_LIMIT_PER_MIN: z.coerce.number().int().positive().default(10),
+  /** number of proxies in front of the API (Render = 1; Render behind a Vercel rewrite = 2) */
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(1),
   PDF_BROWSER_WS_ENDPOINT: z.string().optional().default(""),
   CHROME_PATH: z.string().optional().default(""),
+  /** containers usually can't use Chrome's sandbox; safe here because only our own escaped templates are rendered with JS off */
+  CHROME_NO_SANDBOX: bool,
   /** run background jobs inside the API process (default: on in development, off elsewhere) */
   RUN_JOBS_IN_API: z.enum(["true", "false", "1", "0", ""]).optional(),
   GEOCODER_URL: z.string().optional().default(""),

@@ -9,4 +9,7 @@ export default defineConfig({
   clean: true,
   splitting: false,
   publicDir: "src/templates",
+  // dayjs ships CommonJS files without an exports map, so Node ESM can't resolve "dayjs/plugin/utc".
+  // Bundling it sidesteps that; everything else stays a normal runtime dependency.
+  noExternal: [/^dayjs/],
 });

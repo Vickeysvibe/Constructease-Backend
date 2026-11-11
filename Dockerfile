@@ -9,7 +9,13 @@ COPY src ./src
 RUN npm run build && npm prune --omit=dev
 
 FROM node:22-slim
-ENV NODE_ENV=production
+# Chromium renders PO / return PDFs. Noto covers ₹ and Indian scripts (e.g. Tamil product names).
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends chromium fonts-noto-core fonts-liberation ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production \
+    CHROME_PATH=/usr/bin/chromium \
+    CHROME_NO_SANDBOX=true
 WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist

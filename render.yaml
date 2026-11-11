@@ -1,0 +1,38 @@
+# Render Blueprint: Dashboard → New → Blueprint → pick this repo (branch dev).
+# One web service runs the API and the background jobs (PDFs, Excel exports) in the same process.
+# When traffic grows, add a separate worker (see README) and set RUN_JOBS_IN_API=false here.
+services:
+  - type: web
+    name: constructease-api
+    runtime: docker
+    branch: dev
+    plan: starter            # free also works but sleeps after 15 min idle (first request then takes ~1 min)
+    region: singapore        # closest Render region to India
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI          # Atlas URI with a NEW database name, e.g. …mongodb.net/constructease?retryWrites=true&w=majority
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS         # your Vercel URL, e.g. https://constructease.vercel.app (comma-separate several)
+        sync: false
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: lax
+      - key: TRUST_PROXY          # Vercel rewrite → Render proxy → API
+        value: "2"
+      - key: RUN_JOBS_IN_API
+        value: "true"
+      - key: CHROME_PATH
+        value: /usr/bin/chromium
+      - key: CHROME_NO_SANDBOX
+        value: "true"
+      - key: GEOCODER_URL         # set to https://nominatim.openstreetmap.org/reverse to store addresses for check-ins
+        value: ""
+      - key: LOG_LEVEL
+        value: info
