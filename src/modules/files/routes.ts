@@ -24,6 +24,7 @@ export const filesModule: ModuleRoutes = {
           id: job._id.toHexString(),
           type: job.type,
           status: job.status,
+          attempts: job.attempts ?? 0,
           ...(job.status === "failed" ? { error: job.error ?? "Failed" } : {}),
           ...(file
             ? { file: { id: file.id.toHexString(), filename: file.filename, contentType: file.contentType, size: file.size } }

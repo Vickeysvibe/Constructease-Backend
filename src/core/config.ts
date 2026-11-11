@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { existsSync } from "node:fs";
 import { z } from "zod";
 
 const bool = z
@@ -22,6 +23,8 @@ const schema = z.object({
   LOGIN_RATE_LIMIT_PER_MIN: z.coerce.number().int().positive().default(10),
   PDF_BROWSER_WS_ENDPOINT: z.string().optional().default(""),
   CHROME_PATH: z.string().optional().default(""),
+  /** run background jobs inside the API process (default: on in development, off elsewhere) */
+  RUN_JOBS_IN_API: z.enum(["true", "false", "1", "0", ""]).optional(),
   GEOCODER_URL: z.string().optional().default(""),
   GEOCODER_USER_AGENT: z.string().optional().default("ConstructEase/2.0"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
@@ -44,5 +47,30 @@ function load(): Config {
 }
 
 export const config = load();
+
+/** Common Chrome/Chromium/Edge locations, tried when CHROME_PATH is not set — in development only;
+ * production and tests must configure the browser explicitly. */
+const CHROME_CANDIDATES = [
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+  "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+  "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+];
+export function resolveChromePath(): string {
+  if (config.CHROME_PATH) return config.CHROME_PATH;
+  if (config.NODE_ENV !== "development") return "";
+  return CHROME_CANDIDATES.find((p) => existsSync(p)) ?? "";
+}
+
+export const runJobsInApi =
+  config.RUN_JOBS_IN_API === undefined || config.RUN_JOBS_IN_API === ""
+    ? config.NODE_ENV === "development"
+    : config.RUN_JOBS_IN_API === "true" || config.RUN_JOBS_IN_API === "1";
 export const isTest = config.NODE_ENV === "test";
 export const isProd = config.NODE_ENV === "production";

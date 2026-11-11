@@ -109,6 +109,24 @@ export async function runNextJob(): Promise<boolean> {
 /** An error retrying won't fix (bad input, missing config). */
 export class PermanentJobError extends Error {}
 
+/** Polls the queue until stopped. Used by the worker process and (in development) by the API itself. */
+export function startJobLoop(idleMs = 1000) {
+  let stopping = false;
+  const done = (async () => {
+    while (!stopping) {
+      const worked = await runNextJob().catch((err) => {
+        logger.error({ err }, "job loop error");
+        return false;
+      });
+      if (!worked && !stopping) await new Promise((r) => setTimeout(r, idleMs));
+    }
+  })();
+  return async () => {
+    stopping = true;
+    await done;
+  };
+}
+
 /** Test helper: drain the queue synchronously. */
 export async function drainJobs(max = 50) {
   for (let i = 0; i < max; i++) if (!(await runNextJob())) return;

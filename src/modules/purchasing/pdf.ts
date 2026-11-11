@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Handlebars from "handlebars";
 import type { Types } from "mongoose";
-import { config } from "@/core/config";
+import { config, resolveChromePath } from "@/core/config";
 import { PermanentJobError, PDF_TYPE, registerJobHandler, saveFile } from "@/core/jobs";
 import { dayjs, fromMilli } from "@/core/units";
 import { Organization } from "@/modules/identity/models";
@@ -148,7 +148,7 @@ export async function renderDocumentHtml(
         expectedDate: formatDate(po.expectedDate),
         transport: po.transport ?? "",
         notes: po.notes ?? "",
-        status: po.status.replace("_", " "),
+        status: PO_STATUS_LABEL[po.status] ?? po.status,
       },
       lines: linesView(po),
       totals: { subtotal: formatINR(po.subtotalPaise ?? 0), tax: formatINR(po.taxPaise ?? 0), total: formatINR(po.totalPaise ?? 0) },
@@ -171,14 +171,17 @@ export async function renderDocumentHtml(
 // ---------- HTML → PDF ----------
 
 export async function htmlToPdf(html: string): Promise<Buffer> {
-  if (!config.PDF_BROWSER_WS_ENDPOINT && !config.CHROME_PATH) {
-    throw new PermanentJobError("PDF rendering is not configured. Set PDF_BROWSER_WS_ENDPOINT or CHROME_PATH.");
+  const chromePath = resolveChromePath();
+  if (!config.PDF_BROWSER_WS_ENDPOINT && !chromePath) {
+    throw new PermanentJobError(
+      "PDF rendering is not configured: no Chrome found on the server. Install Google Chrome, or set CHROME_PATH or PDF_BROWSER_WS_ENDPOINT.",
+    );
   }
   const { default: puppeteer } = await import("puppeteer-core");
   const remote = Boolean(config.PDF_BROWSER_WS_ENDPOINT);
   const browser = remote
     ? await puppeteer.connect({ browserWSEndpoint: config.PDF_BROWSER_WS_ENDPOINT })
-    : await puppeteer.launch({ executablePath: config.CHROME_PATH, args: ["--disable-dev-shm-usage"] });
+    : await puppeteer.launch({ executablePath: chromePath, args: ["--disable-dev-shm-usage"] });
   let page: Awaited<ReturnType<typeof browser.newPage>> | undefined;
   try {
     page = await browser.newPage();
@@ -197,6 +200,15 @@ export async function htmlToPdf(html: string): Promise<Buffer> {
     else await browser.close().catch(() => undefined);
   }
 }
+
+/** Wording printed on documents (a "sent" PO is issued, not emailed). */
+const PO_STATUS_LABEL: Record<string, string> = {
+  draft: "Draft",
+  sent: "Issued",
+  partially_received: "Partially received",
+  received: "Received",
+  cancelled: "Cancelled",
+};
 
 export const PDF_JOB = "purchasing.pdf";
 

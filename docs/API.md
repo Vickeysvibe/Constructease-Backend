@@ -352,7 +352,7 @@ Details:
 
 | Method | Path | Response |
 |---|---|---|
-| GET | `/jobs/:jobId` | `{ id, type, status: 'queued'|'running'|'done'|'failed', error?, file?: { id, filename, contentType, size } }` |
+| GET | `/jobs/:jobId` | `{ id, type, status: 'queued'|'running'|'done'|'failed', attempts, error?, file?: { id, filename, contentType, size } }` — `queued` with `attempts: 0` means no worker has picked it up yet |
 | GET | `/files/:fileId` | the file stream (`Content-Disposition: attachment`, RFC 5987 filename) |
 
 Only the user's org can see a job or file.
