@@ -1,4 +1,21 @@
+import { requireSite } from "@/core/access";
+import { handler } from "@/core/http";
 import type { ModuleRoutes } from "@/modules/registry";
+import { orgDashboard, siteDashboard } from "./service";
 
-// TODO(rebuild): implement per docs/API.md
-export const dashboardModule: ModuleRoutes = { name: "dashboard" };
+export const dashboardModule: ModuleRoutes = {
+  name: "dashboard",
+  site(r) {
+    r.get(
+      "/dashboard",
+      requireSite("site:read"),
+      handler({}, async ({ ctx, site }) => siteDashboard(ctx, site)),
+    );
+  },
+  org(r) {
+    r.get(
+      "/dashboard",
+      handler({}, async ({ ctx }) => orgDashboard(ctx)),
+    );
+  },
+};

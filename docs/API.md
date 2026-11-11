@@ -324,21 +324,29 @@ SiteDashboard = {
   purchasing: { openPOs, partiallyReceived, awaitingDelivery: { id, number, vendorName, pendingLines }[] },
   finance?: { vendorPayablePaise, clientReceivedPaise, monthPaymentsOutPaise },
   stock: { items: number, valuePaise?: number },
-  series: { month /* YYYY-MM */, materialSpendPaise, wagesPaise, paymentsOutPaise, paymentsInPaise }[]   // last 6 months incl. current
+  series?: { month /* YYYY-MM */, materialSpendPaise, wagesPaise, paymentsOutPaise, paymentsInPaise }[]   // last 6 months incl. current
 }
 ```
+Details: `today` is today in the org timezone. `/dashboard` lists every site the caller can see (sorted by name); `checkedIn` counts members who checked in today; `openPOs` = POs `sent` or `partially_received`; `monthSpendPaise` = goods-receipt totals (incl. tax) − purchase-return totals dated in the current calendar month, present only for sites where the caller is owner/admin or engineer. On the site dashboard supervisors get no `finance`, `series`, `today.wagesPaise` or `stock.valuePaise`. `checkedIn` lists members with a check-in today, ordered by their first check-in (`at`). `awaitingDelivery` = up to 5 open POs, oldest PO date first; `pendingLines` = lines with `pendingQty > 0`. `finance`: `vendorPayablePaise` / `clientReceivedPaise` = Σ ledger balances on this site (all time) of vendors / clients; `monthPaymentsOutPaise` = posted `out` payments this month. `stock` is as in `GET /stock` (`items` = products with any movement). `series` months with no data are present with zeros; `materialSpendPaise` = receipts − returns (incl. tax), `wagesPaise` = Σ attendance `wagePaise` (rate snapshots), payments are posted ones only.
 
 ## Reports (engineer+)
 
-All accept `from`, `to` (inclusive, max 366 days). Add `format=xlsx` to get `202 { jobId }` instead of JSON.
+All require `from`, `to` (`YYYY-MM-DD`, inclusive, `from ≤ to`, at most 366 days; else 422) and accept `format=json|xlsx` (default `json`). `format=xlsx` returns `202 { jobId }` (job type `reports.export`): the worker recomputes the report and stores a workbook named `<report>_<from>_<to>.xlsx` (e.g. `labour-wages_2026-11-01_2026-11-30.xlsx`) with a title row (report — site — period), amounts in rupees and a totals row. Supervisors get 403.
 
 | Path | Extra query | JSON response |
 |---|---|---|
-| `/sites/:siteId/reports/labour-wages` | `category?` | `{ from, to, days: string[], rows: { labourId, name, category, subCategory, shiftsByDate: Record<date, number>, days, shifts, wagesPaise, paidPaise, balancePaise }[], totals: { shifts, wagesPaise, paidPaise, balancePaise } }` |
-| `/sites/:siteId/reports/vendor-ledger` | `vendorId?` | with `vendorId`: `Ledger`; without: `{ rows: { vendorId, name, openingBalancePaise, receivedPaise, returnedPaise, paidPaise, closingBalancePaise }[], totals }` |
-| `/sites/:siteId/reports/payments` | `category?, direction?` | `{ rows: Payment[], totals: { inPaise, outPaise, byCategory: { category, inPaise, outPaise }[] } }` |
-| `/sites/:siteId/reports/stock` | `productId?` | `{ rows: { productId, productName, unit, openingQty, receivedQty, returnedQty, consumedQty, adjustedQty, closingQty, closingValuePaise }[] }` |
-| `/sites/:siteId/reports/site-summary` | – | `{ materials: { receivedPaise, returnedPaise, netPaise }, labour: { shifts, wagesPaise }, payments: { inPaise, outPaise }, byMonth: { month, materialsPaise, wagesPaise, paymentsOutPaise, paymentsInPaise }[] }` |
+| `/sites/:siteId/reports/labour-wages` | `category?` | `{ from, to, days: string[], rows: { labourId, name, category, subCategory?, shiftsByDate: Record<date, number>, days, shifts, wagesPaise, paidPaise, balancePaise }[], totals: { shifts, wagesPaise, paidPaise, balancePaise } }` |
+| `/sites/:siteId/reports/vendor-ledger` | `vendorId?` | with `vendorId`: `Ledger`; without: `{ from, to, rows: { vendorId, name, openingBalancePaise, receivedPaise, returnedPaise, paidPaise, closingBalancePaise }[], totals: { openingBalancePaise, receivedPaise, returnedPaise, paidPaise, closingBalancePaise } }` |
+| `/sites/:siteId/reports/payments` | `category?, direction?` | `{ from, to, rows: Payment[], totals: { inPaise, outPaise, byCategory: { category, inPaise, outPaise }[] } }` |
+| `/sites/:siteId/reports/stock` | `productId?` | `{ from, to, rows: { productId, productName, unit, openingQty, receivedQty, returnedQty, consumedQty, adjustedQty, closingQty, avgCostPaise, closingValuePaise }[], totals: { closingValuePaise } }` |
+| `/sites/:siteId/reports/site-summary` | – | `{ from, to, materials: { receivedPaise, returnedPaise, netPaise }, labour: { shifts, wagesPaise }, payments: { inPaise, outPaise }, byMonth: { month, materialsPaise, wagesPaise, paymentsOutPaise, paymentsInPaise }[] }` |
+
+Details:
+- **labour-wages.** One row per labourer with an attendance entry or a labour payment on this site in the range — including labour since detached or archived — sorted by name. `days` lists every date of the range. `shiftsByDate` has every marked date (absent = 0). `days` (per row) = present days; `wagesPaise` = Σ entry `wagePaise` (rate snapshots, never the current rate); `paidPaise` = posted `labour` payments to that labourer on this site in the range (`out` minus `in`); `balancePaise = wagesPaise − paidPaise`. `category` filters on the labourer's category (`Uncategorised` matches labour without one); a labourer without a category is reported as `"Uncategorised"`.
+- **vendor-ledger.** With `vendorId` the response is exactly `GET …/parties/:vendorId/ledger?from&to` (404 unless a vendor attached to the site). Without it: every vendor attached to the site or with ledger entries on it, sorted by name. Opening = that vendor's entries on this site before `from`. In range, amounts are net per source type so reversals cancel (a voided payment contributes 0): `receivedPaise` = goods receipts (credit − debit; migrated `legacy` entries are included here), `returnedPaise` = purchase returns (debit − credit), `paidPaise` = payments (debit − credit). `closing = opening + received − returned − paid`.
+- **payments.** Posted payments on this site only (no void, no org-level), oldest first; `byCategory` lists only categories that occur.
+- **stock.** Products with any movement on the site up to `to`. Opening = movements before `from`; `returnedQty`/`consumedQty` are positive, `adjustedQty` signed; `avgCostPaise` = quantity-weighted receipt cost net of returns over movements up to `to`; `closingValuePaise = round(max(closingQty, 0) × avgCostPaise)`.
+- **site-summary.** Materials are receipt/return totals incl. tax; wages are attendance snapshots; payments are posted ones of every category. `byMonth` has every `YYYY-MM` the range touches (zeros when empty); `materialsPaise` is net of returns.
 
 ## Jobs & files
 

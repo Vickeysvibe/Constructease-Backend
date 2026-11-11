@@ -1,0 +1,32 @@
+# Local development stack: MongoDB replica set (needed for transactions), API, worker, headless Chrome for PDFs.
+# Secrets come from your shell or .env (never commit them):  JWT_ACCESS_SECRET=$(openssl rand -base64 48) docker compose up
+services:
+  mongo:
+    image: mongo:7
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports: ["27017:27017"]
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"]
+      interval: 5s
+      retries: 20
+  chrome:
+    image: ghcr.io/browserless/chromium:latest
+    ports: ["3000:3000"]
+  api:
+    build: .
+    depends_on: { mongo: { condition: service_healthy } }
+    ports: ["8000:8000"]
+    environment: &env
+      MONGODB_URI: mongodb://mongo:27017/constructease?replicaSet=rs0
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET}
+      CORS_ORIGINS: http://localhost:5173
+      PDF_BROWSER_WS_ENDPOINT: ws://chrome:3000
+      GEOCODER_URL: ""
+  worker:
+    build: .
+    command: ["node", "dist/worker.js"]
+    depends_on: { mongo: { condition: service_healthy } }
+    environment: *env
+volumes:
+  mongo-data:
