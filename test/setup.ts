@@ -1,4 +1,8 @@
 import crypto from "node:crypto";
+import mongoose from "mongoose";
+
+// Test files share one process (singleFork) but re-import src/: clear models registered by the previous file.
+for (const name of mongoose.modelNames()) mongoose.deleteModel(name);
 
 // Runs before every test file, before any app module is imported. Secrets are generated per run.
 process.env.NODE_ENV = "test";

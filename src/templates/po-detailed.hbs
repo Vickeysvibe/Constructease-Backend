@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{{title}} {{doc.number}}</title>
+<style>
+  @page { size: A4; }
+  * { box-sizing: border-box; }
+  body { font-family: "Noto Sans", "Helvetica Neue", Arial, sans-serif; font-size: 11.5px; color: #1d1d1d; margin: 0; }
+  .banner { background: #263238; color: #fff; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .banner img { max-height: 48px; max-width: 110px; background: #fff; padding: 3px; border-radius: 3px; margin-right: 12px; }
+  .banner .who { display: flex; align-items: center; }
+  .banner h1 { margin: 0; font-size: 18px; }
+  .banner p { margin: 1px 0; opacity: .85; }
+  .banner .doc { text-align: right; }
+  .banner .doc h2 { margin: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .cell { border: 1px solid #cfd8dc; padding: 8px; }
+  .cell h3 { margin: 0 0 4px; font-size: 10px; text-transform: uppercase; color: #546e7a; letter-spacing: .5px; }
+  .cell p { margin: 2px 0; }
+  table.lines { width: 100%; border-collapse: collapse; margin-top: 14px; }
+  table.lines th, table.lines td { border: 1px solid #cfd8dc; padding: 5px 6px; }
+  table.lines th { background: #eceff1; text-align: left; font-weight: 600; }
+  .num { text-align: right; white-space: nowrap; }
+  tr { page-break-inside: avoid; }
+  .summary { display: flex; justify-content: space-between; margin-top: 12px; gap: 16px; }
+  .summary .terms { flex: 1; }
+  .summary .terms ol { margin: 4px 0 0; padding-left: 16px; }
+  table.totals { border-collapse: collapse; min-width: 240px; }
+  table.totals td { padding: 4px 8px; border: 1px solid #cfd8dc; }
+  table.totals tr.grand td { background: #263238; color: #fff; font-weight: 700; }
+  .signs { display: flex; justify-content: space-between; margin-top: 56px; }
+  .signs div { border-top: 1px solid #555; width: 180px; text-align: center; padding-top: 4px; }
+</style>
+</head>
+<body>
+  <div class="banner">
+    <div class="who">
+      {{#if org.logoUrl}}<img src="{{org.logoUrl}}" alt="" />{{/if}}
+      <div>
+        <h1>{{org.name}}</h1>
+        {{#if org.address}}<p>{{org.address}}</p>{{/if}}
+        <p>{{#if org.phone}}Phone: {{org.phone}}{{/if}}{{#if org.gstIn}} &middot; GSTIN: {{org.gstIn}}{{/if}}</p>
+      </div>
+    </div>
+    <div class="doc">
+      <h2>{{title}}</h2>
+      <p>{{doc.number}}</p>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="cell">
+      <h3>Vendor</h3>
+      <p><strong>{{vendor.name}}</strong></p>
+      {{#if vendor.contactName}}<p>Attn: {{vendor.contactName}}</p>{{/if}}
+      {{#if vendor.address}}<p>{{vendor.address}}</p>{{/if}}
+      {{#if vendor.phone}}<p>Phone: {{vendor.phone}}</p>{{/if}}
+      {{#if vendor.gstIn}}<p>GSTIN: {{vendor.gstIn}}</p>{{/if}}
+    </div>
+    <div class="cell">
+      <h3>Deliver to</h3>
+      <p><strong>{{site.name}}</strong></p>
+      {{#if site.address}}<p>{{site.address}}</p>{{/if}}
+    </div>
+    <div class="cell">
+      <h3>Order details</h3>
+      <p>PO date: {{doc.date}}</p>
+      {{#if doc.expectedDate}}<p>Expected by: {{doc.expectedDate}}</p>{{/if}}
+      {{#if doc.transport}}<p>Transport: {{doc.transport}}</p>{{/if}}
+      <p>Status: {{doc.status}}</p>
+    </div>
+  </div>
+
+  <table class="lines">
+    <thead>
+      <tr>
+        <th style="width:34px">S.No</th>
+        <th>Description</th>
+        <th class="num">Qty</th>
+        <th>Unit</th>
+        <th class="num">Rate</th>
+        <th class="num">Taxable value</th>
+        <th class="num">GST %</th>
+        <th class="num">GST amount</th>
+        <th class="num">Line total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each lines}}
+      <tr>
+        <td>{{sn}}</td>
+        <td>{{productName}}</td>
+        <td class="num">{{qty}}</td>
+        <td>{{unit}}</td>
+        <td class="num">{{unitPrice}}</td>
+        <td class="num">{{amount}}</td>
+        <td class="num">{{taxRate}}</td>
+        <td class="num">{{tax}}</td>
+        <td class="num">{{total}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <div class="summary">
+    <div class="terms">
+      {{#if doc.notes}}<p><strong>Notes:</strong> {{doc.notes}}</p>{{/if}}
+      <strong>Terms</strong>
+      <ol>
+        <li>Please quote the PO number on the delivery challan and invoice.</li>
+        <li>Material is accepted subject to inspection at site.</li>
+      </ol>
+    </div>
+    <table class="totals">
+      <tr><td>Taxable value</td><td class="num">{{totals.subtotal}}</td></tr>
+      <tr><td>GST</td><td class="num">{{totals.tax}}</td></tr>
+      <tr class="grand"><td>Grand total</td><td class="num">{{totals.total}}</td></tr>
+    </table>
+  </div>
+
+  <div class="signs">
+    <div>Prepared by</div>
+    <div>For {{org.name}}<br />Authorised signatory</div>
+  </div>
+</body>
+</html>

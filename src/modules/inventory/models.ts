@@ -66,3 +66,43 @@ export async function averageCostPaise(
   ]).session(session ?? null);
   return new Map(rows.map((r) => [r._id.toHexString(), r.qty > 0 ? Math.round(r.value / r.qty) : 0]));
 }
+
+/**
+ * One row per (site, product) used only to serialise stock-decreasing transactions. Every transaction
+ * that checks on-hand before writing a negative movement first bumps these rows with its session, so two
+ * concurrent transactions on the same product hit a write conflict and the driver retries the later one
+ * (which then re-reads on-hand and sees the earlier commit).
+ */
+const StockLockSchema = new Schema(
+  {
+    orgId: { type: Schema.Types.ObjectId, required: true },
+    siteId: { type: Schema.Types.ObjectId, required: true },
+    productId: { type: Schema.Types.ObjectId, required: true },
+    seq: { type: Number, default: 0 },
+  },
+  { versionKey: false },
+);
+StockLockSchema.index({ orgId: 1, siteId: 1, productId: 1 }, { unique: true });
+StockLockSchema.plugin(tenantGuard);
+export const StockLock = mongoose.model("StockLock", StockLockSchema);
+
+/** Makes sure the lock rows exist. Call OUTSIDE the transaction (an upsert inside one could race into E11000). */
+export async function ensureStockLocks(orgId: Types.ObjectId, siteId: Types.ObjectId, productIds: Types.ObjectId[]) {
+  await Promise.all(
+    productIds.map((productId) =>
+      StockLock.updateOne({ orgId, siteId, productId }, { $setOnInsert: { seq: 0 } }, { upsert: true }).catch((err: unknown) => {
+        if ((err as { code?: number }).code !== 11000) throw err;
+      }),
+    ),
+  );
+}
+
+/** Takes the stock locks for these products inside `session` (see StockLock). */
+export async function lockStock(
+  orgId: Types.ObjectId,
+  siteId: Types.ObjectId,
+  productIds: Types.ObjectId[],
+  session: ClientSession,
+) {
+  await StockLock.updateMany({ orgId, siteId, productId: { $in: productIds } }, { $inc: { seq: 1 } }, { session });
+}

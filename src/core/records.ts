@@ -86,13 +86,18 @@ export const idempotent: RequestHandler = async (req, res, next) => {
     await IdempotencyRecord.create({ ...scope, route });
   } catch (err) {
     if ((err as { code?: number }).code !== 11000) throw err;
-    const existing = await IdempotencyRecord.findOne(scope).lean();
-    if (existing?.route !== route) throw conflict("This Idempotency-Key was already used for a different request.");
-    if (existing.state === "done") {
-      res.status(existing.status ?? 200).json(existing.body);
-      return;
+    // A retry often arrives while the first request is finishing: wait briefly for its result.
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const existing = await IdempotencyRecord.findOne(scope).lean();
+      if (!existing) break; // the first request failed and released the key
+      if (existing.route !== route) throw conflict("This Idempotency-Key was already used for a different request.");
+      if (existing.state === "done") {
+        res.status(existing.status ?? 200).json(existing.body);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 100));
     }
-    throw conflict("A request with this Idempotency-Key is still being processed.");
+    throw conflict("A request with this Idempotency-Key is still being processed. Try again shortly.");
   }
   const json = res.json.bind(res);
   res.json = (body: unknown) => {

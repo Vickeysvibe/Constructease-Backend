@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{{title}} {{doc.number}}</title>
+<style>
+  @page { size: A4; }
+  * { box-sizing: border-box; }
+  body { font-family: "Noto Sans", "Helvetica Neue", Arial, sans-serif; font-size: 12px; color: #222; margin: 0; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #8e2b2b; padding-bottom: 10px; }
+  .org { display: flex; gap: 12px; align-items: center; }
+  .org img { max-height: 56px; max-width: 120px; object-fit: contain; }
+  .org h1 { font-size: 20px; margin: 0 0 2px; color: #8e2b2b; }
+  .muted { color: #555; margin: 1px 0; }
+  .doc { text-align: right; }
+  .doc h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: 1px; color: #8e2b2b; text-transform: uppercase; }
+  .doc p { margin: 1px 0; }
+  .boxes { display: flex; gap: 16px; margin-top: 14px; }
+  .box { flex: 1; border: 1px solid #e0cccc; border-radius: 4px; padding: 8px 10px; }
+  .box h3 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; color: #8e2b2b; letter-spacing: .5px; }
+  .box p { margin: 2px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { border: 1px solid #e0cccc; padding: 6px 8px; vertical-align: top; }
+  th { background: #8e2b2b; color: #fff; font-weight: 600; text-align: left; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  tr { page-break-inside: avoid; }
+  .totals { margin-top: 10px; margin-left: auto; width: 45%; border-collapse: collapse; }
+  .totals td { border: none; padding: 3px 8px; }
+  .totals tr.grand td { border-top: 2px solid #8e2b2b; font-weight: 700; font-size: 14px; }
+  .sign { margin-top: 48px; display: flex; justify-content: space-between; }
+  .sign div { border-top: 1px solid #555; padding-top: 4px; width: 200px; text-align: center; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="org">
+      {{#if org.logoUrl}}<img src="{{org.logoUrl}}" alt="" />{{/if}}
+      <div>
+        <h1>{{org.name}}</h1>
+        {{#if org.address}}<p class="muted">{{org.address}}</p>{{/if}}
+        {{#if org.phone}}<p class="muted">Phone: {{org.phone}}</p>{{/if}}
+        {{#if org.gstIn}}<p class="muted">GSTIN: {{org.gstIn}}</p>{{/if}}
+      </div>
+    </div>
+    <div class="doc">
+      <h2>{{title}}</h2>
+      <p><strong>Return No:</strong> {{doc.number}}</p>
+      <p><strong>Date:</strong> {{doc.date}}</p>
+      <p><strong>Against PO:</strong> {{doc.poNumber}}</p>
+    </div>
+  </header>
+
+  <section class="boxes">
+    <div class="box">
+      <h3>Returned to</h3>
+      <p><strong>{{vendor.name}}</strong></p>
+      {{#if vendor.address}}<p>{{vendor.address}}</p>{{/if}}
+      {{#if vendor.phone}}<p>Phone: {{vendor.phone}}</p>{{/if}}
+      {{#if vendor.gstIn}}<p>GSTIN: {{vendor.gstIn}}</p>{{/if}}
+    </div>
+    <div class="box">
+      <h3>From site</h3>
+      <p><strong>{{site.name}}</strong></p>
+      {{#if site.address}}<p>{{site.address}}</p>{{/if}}
+      {{#if doc.reason}}<p>Reason: {{doc.reason}}</p>{{/if}}
+    </div>
+  </section>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:36px">S.No</th>
+        <th>Item</th>
+        <th class="num">Qty</th>
+        <th>Unit</th>
+        <th class="num">Rate</th>
+        <th class="num">Amount</th>
+        <th class="num">GST</th>
+        <th class="num">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each lines}}
+      <tr>
+        <td>{{sn}}</td>
+        <td>{{productName}}</td>
+        <td class="num">{{qty}}</td>
+        <td>{{unit}}</td>
+        <td class="num">{{unitPrice}}</td>
+        <td class="num">{{amount}}</td>
+        <td class="num">{{tax}} ({{taxRate}})</td>
+        <td class="num">{{total}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr><td>Subtotal</td><td class="num">{{totals.subtotal}}</td></tr>
+    <tr><td>GST</td><td class="num">{{totals.tax}}</td></tr>
+    <tr class="grand"><td>Total credit due</td><td class="num">{{totals.total}}</td></tr>
+  </table>
+
+  <div class="sign">
+    <div>Received by (vendor)</div>
+    <div>For {{org.name}}<br />Authorised signatory</div>
+  </div>
+</body>
+</html>

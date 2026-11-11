@@ -111,7 +111,7 @@ Parties belong to the org and are attached to one or more sites (`siteIds`). Sit
 | DELETE | `/sites/:siteId/parties/:partyId` | – | `204` detaches from this site (history keeps the reference) |
 | GET | `/parties` | `kind, q, page, pageSize` | `List<Party>` org-wide (engineer+ anywhere) — for "add existing" |
 | POST | `/parties/:partyId/archive` · `/restore` | – | `Party` (owner/admin) |
-| GET | `/sites/:siteId/parties/:partyId/ledger` | `from, to` | `Ledger` (vendor/client only; engineer+) |
+| GET | `/sites/:siteId/parties/:partyId/ledger` | `from?, to?` (default: `to` = today, `from` = 1 April of `to`'s financial year) | `Ledger` (vendor/client only, else 409 `INVALID_STATE`; party must be attached to the site; engineer+). Opening balance = this party's entries **on this site** before `from`; entries ordered by date then creation time with a running `balancePaise`. Org-level payments (no site) are not in a site ledger. |
 
 ```ts
 PartyInput = {
@@ -183,6 +183,7 @@ PurchaseOrder = { id, number /* PO-2026-0001 */, siteId, vendor: { id, name, gst
 PurchaseOrderSummary = Omit<PurchaseOrder, 'lines'|'receipts'|'returns'> & { lineCount: number }
 ```
 Status rules: `sent` → `partially_received` after the first receipt → `received` when every line has `pendingQty = 0`. Returns never re-open a received PO (`pendingQty = qty − receivedQty`).
+Details: `vendorId` must be an active `vendor` attached to this site and every `productId` an active product of the org, else 422 (`errors[].path` `vendorId` / `lines.N.productId`). `expectedDate ≥ date`. The number's year is the PO `date`'s year. PATCH with `lines` replaces all lines (new line ids); sending `""` for `transport`/`notes` clears them. `send` from anything but `draft`, and `cancel` from anything but `draft`/`sent`, is 409 `INVALID_STATE`; a cancelled PO carries `cancelReason?`. `receivedValuePaise` = Σ `totalPaise` (incl. tax) of its goods receipts. List: default sort `-date`; `sort` accepts `date`, `number`, `totalPaise`, `createdAt`, `status`; `q` searches number and vendor name; `from`/`to` are each optional. `…/pdf` needs only read access; the job fails with "PDF rendering is not configured…" when neither `PDF_BROWSER_WS_ENDPOINT` nor `CHROME_PATH` is set; the file is named `PO-2026-0001.pdf`.
 
 ### Goods receipts (material inward) — supervisors allowed
 | Method | Path | Body / query | Response |
@@ -199,6 +200,7 @@ GoodsReceipt = { id, number /* GR-2026-0001 */, poId, poNumber, vendor: { id, na
                  subtotalPaise, taxPaise, totalPaise, createdBy: { id, name }, createdAt }
 ```
 Rules: PO must be `sent` or `partially_received`; each `qty ≤ pendingQty` (409 `INVALID_STATE` with per-line `errors`). In one transaction: receipt + stock movements (+qty) + vendor ledger credit + PO status update. Receipts are immutable; corrections go through returns.
+Details: a `poLineId` that isn't on the PO, or the same `poLineId` twice, is 422. `poId` of another site/org is 404. The ledger credit is the receipt's `totalPaise` (incl. tax); stock movements carry `unitCostPaise` = the receipt line price (excl. tax). `GoodsReceiptSummary = Omit<GoodsReceipt, 'lines'> & { lineCount }`; list `q` searches number, PO number, vendor and challan.
 
 ### Purchase returns
 | Method | Path | Body / query | Response |
@@ -210,6 +212,7 @@ Rules: PO must be `sent` or `partially_received`; each `qty ≤ pendingQty` (409
 
 Rules: `qty ≤ receivedQty − returnedQty` for the line and `≤ on-hand stock` (409 `INSUFFICIENT_STOCK`). Price = quantity-weighted average receipt price of that line. In one transaction: return + stock movements (−qty) + vendor ledger debit.
 `PurchaseReturn` mirrors `GoodsReceipt` (number `PR-2026-0001`, `reason`, no challan/vehicle).
+Details: both limits (returnable on the line, on-hand on the site — summed per product across lines) fail with 409 `INSUFFICIENT_STOCK` and per-line `errors` (`lines.N.qty`). Draft/cancelled PO → 409 `INVALID_STATE`. The average price is over every receipt line for that PO line (excl. tax); tax uses the PO line's `taxRateBp`. The ledger debit is the return's `totalPaise`. Return PDFs accept only `template: 'classic'` (default).
 
 ## Inventory
 
@@ -226,6 +229,7 @@ StockMovement = { id, productId, productName, unit, date, type: 'receipt'|'retur
                   unitCostPaise, sourceType, sourceId, reference, notes?, createdBy: { id, name }, createdAt }
 ```
 Stock is never stored as a counter: on-hand = Σ movements. Movements are append-only.
+Details: `receivedQty`/`returnedQty`/`consumedQty` are positive, `adjustedQty` is signed. `avgCostPaise` = quantity-weighted receipt cost net of returns (0 if nothing received); `valuePaise = round(onHandQty × avgCostPaise)`. Consumption and adjustment movements are costed at that average. Consumption/adjustment `productId` must be a product of the org (else 422); several consumption lines for one product are checked against stock together, failing with per-line `errors` (`lines.N.qty`). `usedFor` (else `notes`) is stored as the movement's `notes`; the adjustment `reason` likewise. Adjustment `qty ≠ 0`; a negative one that would take on-hand below 0 is 409 `INSUFFICIENT_STOCK`. `stock-adjustments` also accepts `Idempotency-Key`. Movements list is sorted newest `date` first; `sourceId` groups the movements of one receipt/return/consumption.
 
 ## Workforce
 
@@ -233,7 +237,7 @@ Stock is never stored as a counter: on-hand = Σ movements. Movements are append
 | Method | Path | Body / query | Response |
 |---|---|---|---|
 | GET | `/sites/:siteId/attendance` | `date` (default today) | `AttendanceSheet` |
-| PUT | `/sites/:siteId/attendance` | `{ date, entries: { labourId, status: 'present'|'absent', shifts?: number /* 0.5 steps, 0–3, default 1 when present */ }[] }` | `AttendanceSheet` |
+| PUT | `/sites/:siteId/attendance` | `{ date, entries: { labourId, status: 'present'|'absent', shifts?: number /* 0.5 steps, 0–3, default 1 when present */ }[] /* 1–500 */, refreshRates?: boolean }` | `AttendanceSheet` |
 
 ```ts
 AttendanceSheet = { date, editable: boolean,
@@ -241,7 +245,7 @@ AttendanceSheet = { date, editable: boolean,
           entry: { id, status, shifts, wageRatePaise /* snapshot */, wagePaise } | null }[],
   summary: { present, absent, unmarked, shifts, wagesPaise, byCategory: { category, present, shifts }[] } }
 ```
-Rules: no future dates; supervisors may edit only today and yesterday (else 403). Unique per (labour, date) **across the org**: present on another site that day → 409 with per-entry `errors`. The wage rate is copied onto the entry when it is created and is not changed by later rate edits (an engineer can re-save the day to refresh it explicitly with `refreshRates: true`).
+Rules: no future dates (422 on `date`); supervisors may edit only today and yesterday (else 403); `editable` tells the caller whether they may save this date. A PUT upserts only the entries sent, in one transaction. Present needs `shifts` ≥ 0.5; absent means `shifts` 0 (sending more is 422). Each `labourId` must be an active `labour` party attached to the site (else 422 with `errors[].path` `entries.N.labourId`). A labourer can be **present** on only one site per day across the org: present on another site that day → 409 with per-entry `errors` (path `entries.N.labourId`); being absent on several sites is allowed. The wage rate is copied onto the entry when it is created and is not changed by later rate edits (an engineer can re-save the day to refresh it explicitly with `refreshRates: true`; supervisors get 403). `wagePaise = round(shifts × wageRatePaise)`. Rows list the site's active labour plus anyone with an entry that day (so detached labour still counts); `byCategory` uses `"Uncategorised"` for labour without a category.
 
 ### Check-ins (any site member, for themselves)
 | Method | Path | Body / query | Response |
@@ -252,7 +256,7 @@ Rules: no future dates; supervisors may edit only today and yesterday (else 403)
 ```ts
 CheckinDay = { id, user: { id, name }, date, events: { type, at, lat, lng, accuracyM?, address? }[], firstIn?, lastOut?, workedMinutes }
 ```
-Rules: alternating in/out (409 if checking out while not checked in).
+Rules: alternating in/out (409 if checking in twice or checking out while not checked in). `date` is today in the org timezone; a check-out after midnight closes the previous day's open check-in. `lat` ∈ [-90, 90], `lng` ∈ [-180, 180]. `workedMinutes` sums closed in→out pairs. Supervisors asking for another `userId` get 403. Addresses are filled by the `workforce.geocode` job (skipped when `GEOCODER_URL` is not configured); geocoding never affects the check-in.
 
 ## Finance
 
@@ -263,6 +267,7 @@ Rules: alternating in/out (409 if checking out while not checked in).
 | GET / PATCH | `/sites/:siteId/payments/:paymentId` | `Partial<PaymentInput>` | `Payment` (edit re-posts the ledger entry) |
 | POST | `/sites/:siteId/payments/:paymentId/void` | `{ reason }` | `Payment` status `void`, ledger entry reversed |
 | GET / POST | `/payments` | same as above, org-level (no site; general expenses), owner/admin | `List<Payment>` / `201 Payment` |
+| GET / PATCH | `/payments/:paymentId` · POST `/payments/:paymentId/void` | org-level payments, owner/admin | `Payment` |
 
 ```ts
 PaymentInput = { date, direction: 'out'|'in', category: 'vendor'|'client'|'labour'|'other',
@@ -271,6 +276,7 @@ PaymentInput = { date, direction: 'out'|'in', category: 'vendor'|'client'|'labou
                  quantity?, unit?, unitCostPaise? }
 Payment = PaymentInput & { id, siteId: string|null, party?: { id, name, kind }, status: 'posted'|'void', voidReason?, createdBy: { id, name }, createdAt, updatedAt }
 ```
+Rules: `partyId` must be a party of the category's kind attached to the site (org-level: any party of that kind in the org), else 422 on `partyId`; `other` payments must not have a party. Vendor and client payments post a ledger entry (`in` = credit, `out` = debit); labour and other payments post none (labour balances come from attendance). PATCH accepts `null` to clear optional fields (`partyId`, `method`, `reference`, `description`, `quantity`, `unit`, `unitCostPaise`); if the posting changes, the old ledger entry is reversed and a new one posted in the same transaction. Void payments can't be edited or voided again (409 `INVALID_STATE`). List default sort is `-date`; `sort` accepts `date`, `amountPaise`, `createdAt`; `q` searches reference/description. `POST` creates accept `Idempotency-Key`.
 
 ## Worklog (to-do & work done) and notes
 
@@ -297,6 +303,13 @@ TrackerRow  = { id, values: Record<string, string|number|null>, done: boolean, c
 Note        = { id, title, body, link?, createdBy: { id, name }, createdAt, updatedAt }
 ```
 Values are validated against the column type (`date` = `YYYY-MM-DD`, `status` ∈ options).
+
+Details:
+- **Columns.** `key` is generated by the server (`c_…`) and is never sent on create. Labels are unique (case-insensitive) within a tracker, max 30 columns, a `status` column needs ≥ 1 unique option and other types take no options. Responses always include `required` and `options` (`[]` for non-status). The default trackers use fixed keys: To-do `c_task`, `c_start`, `c_end`, `c_status`; Work done `c_title`, `c_desc`, `c_date`. `POST` `kind` defaults to `custom`.
+- **Column edits.** A new column leaves existing rows untouched. If you change a column's `type`, or remove a status option that rows still use, every stored value must still be valid. Otherwise the server returns `409 CONFLICT` with `errors[{ path: 'columns.<i>', message }]`. A `key` that isn't in the tracker → `422`.
+- **Row values.** An unknown key → `422` (`errors[].path = 'values.<key>'`). `text` is trimmed, ≤ 2000 chars; `number` must be a finite JSON number (`"5"` is rejected). `null` or `""` clears a cell, but a required column can't be cleared. On create, every required column needs a value. On `PATCH`, only the keys you send are checked, so rows created before a required column was added stay editable.
+- **Rows list.** `q` searches text and status cells. `done=true|false`. `sort` = `createdAt` | `updatedAt` | a column key (prefix `-` for descending). An unknown key falls back to the default order, oldest first (`createdAt`).
+- **Notes.** `link` must be an `http(s)` URL. On `PATCH`, `link: null` or `""` removes it. The list is newest first by default; `sort` = `title` | `createdAt` | `updatedAt`, and `q` searches title and body.
 
 ## Dashboard
 

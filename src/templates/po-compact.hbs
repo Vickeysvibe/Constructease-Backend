@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{{title}} {{doc.number}}</title>
+<style>
+  @page { size: A4; }
+  * { box-sizing: border-box; }
+  body { font-family: "Noto Sans", "Helvetica Neue", Arial, sans-serif; font-size: 11px; color: #222; margin: 0; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #333; padding-bottom: 6px; }
+  .top h1 { font-size: 16px; margin: 0; }
+  .top img { max-height: 32px; vertical-align: middle; margin-right: 8px; }
+  .meta { display: flex; justify-content: space-between; margin: 8px 0; gap: 12px; }
+  .meta p { margin: 1px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 4px 6px; border-bottom: 1px solid #ddd; text-align: left; }
+  th { border-bottom: 1px solid #333; font-weight: 600; }
+  .num { text-align: right; white-space: nowrap; }
+  tr { page-break-inside: avoid; }
+  tfoot td { border-bottom: none; }
+  tfoot tr.grand td { border-top: 1px solid #333; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>{{#if org.logoUrl}}<img src="{{org.logoUrl}}" alt="" />{{/if}}{{org.name}}</h1>
+    <div><strong>{{title}}</strong> {{doc.number}} &middot; {{doc.date}}</div>
+  </div>
+  <div class="meta">
+    <div>
+      <p><strong>To:</strong> {{vendor.name}}{{#if vendor.gstIn}} (GSTIN {{vendor.gstIn}}){{/if}}</p>
+      {{#if vendor.phone}}<p>Phone: {{vendor.phone}}</p>{{/if}}
+    </div>
+    <div style="text-align:right">
+      <p><strong>Site:</strong> {{site.name}}</p>
+      {{#if org.gstIn}}<p>Our GSTIN: {{org.gstIn}}</p>{{/if}}
+      {{#if doc.expectedDate}}<p>Expected by {{doc.expectedDate}}</p>{{/if}}
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">GST</th><th class="num">Total</th></tr>
+    </thead>
+    <tbody>
+      {{#each lines}}
+      <tr>
+        <td>{{sn}}</td>
+        <td>{{productName}}</td>
+        <td class="num">{{qty}} {{unit}}</td>
+        <td class="num">{{unitPrice}}</td>
+        <td class="num">{{taxRate}}</td>
+        <td class="num">{{total}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="5" class="num">Subtotal</td><td class="num">{{totals.subtotal}}</td></tr>
+      <tr><td colspan="5" class="num">GST</td><td class="num">{{totals.tax}}</td></tr>
+      <tr class="grand"><td colspan="5" class="num">Total</td><td class="num">{{totals.total}}</td></tr>
+    </tfoot>
+  </table>
+  {{#if doc.notes}}<p><strong>Notes:</strong> {{doc.notes}}</p>{{/if}}
+</body>
+</html>

@@ -1,4 +1,4 @@
-import mongoose, { Schema, type ClientSession, type Types } from "mongoose";
+import mongoose, { Schema, type ClientSession, type InferSchemaType, type Types } from "mongoose";
 import { tenantGuard } from "@/core/db";
 
 export const LEDGER_SOURCES = ["goods_receipt", "purchase_return", "payment", "legacy"] as const;
@@ -105,3 +105,44 @@ export async function partyBalances(
   ]);
   return new Map(rows.map((r) => [r._id.toHexString(), { debitPaise: r.debit, creditPaise: r.credit, balancePaise: r.credit - r.debit }]));
 }
+
+// ---------- Payments ----------
+export const PAYMENT_DIRECTIONS = ["out", "in"] as const;
+export const PAYMENT_CATEGORIES = ["vendor", "client", "labour", "other"] as const;
+export const PAYMENT_METHODS = ["cash", "bank", "upi", "cheque", "other"] as const;
+export type PaymentCategory = (typeof PAYMENT_CATEGORIES)[number];
+export type PaymentDirection = (typeof PAYMENT_DIRECTIONS)[number];
+
+/**
+ * Money in or out. Vendor/client payments also post a LedgerEntry (in = credit, out = debit);
+ * labour and other payments don't (labour balances come from attendance). Never deleted: voided.
+ */
+const PaymentSchema = new Schema(
+  {
+    orgId: { type: Schema.Types.ObjectId, required: true },
+    /** null for org-level payments (general expenses) */
+    siteId: { type: Schema.Types.ObjectId, ref: "Site", default: null },
+    date: { type: String, required: true }, // YYYY-MM-DD
+    direction: { type: String, enum: PAYMENT_DIRECTIONS, required: true },
+    category: { type: String, enum: PAYMENT_CATEGORIES, required: true },
+    partyId: { type: Schema.Types.ObjectId, ref: "Party" },
+    amountPaise: { type: Number, required: true, min: 1 },
+    method: { type: String, enum: PAYMENT_METHODS },
+    reference: { type: String, trim: true, maxlength: 120 },
+    description: { type: String, trim: true, maxlength: 1000 },
+    quantityMilli: { type: Number },
+    unit: { type: String, trim: true, maxlength: 30 },
+    unitCostPaise: { type: Number, min: 0 },
+    status: { type: String, enum: ["posted", "void"], default: "posted" },
+    voidReason: { type: String, trim: true, maxlength: 500 },
+    voidedAt: { type: Date },
+    voidedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  },
+  { timestamps: true },
+);
+PaymentSchema.index({ orgId: 1, siteId: 1, date: -1 });
+PaymentSchema.index({ orgId: 1, partyId: 1, date: 1 });
+PaymentSchema.plugin(tenantGuard);
+export const Payment = mongoose.model("Payment", PaymentSchema);
+export type PaymentDoc = InferSchemaType<typeof PaymentSchema> & { _id: Types.ObjectId; createdAt: Date; updatedAt: Date };
