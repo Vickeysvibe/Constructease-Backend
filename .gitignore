@@ -1,42 +1,11 @@
-gitignore for Node.js Backend
-
-Here's a comprehensive .gitignore file for a Node.js backend project, considering common files and directories that you might want to exclude from version control:
-
-# Node.js specific
 node_modules/
-
-install_and_run.bat
-install_and_run.sh
-system.py
-
-npm-debug.log*
-yarn-error.log*
-.eslintcache
-.nyc_output
-
-# Editor config files
-*.swp
-*.bak
-*.tmp
-*.swpx
-.DS_Store
-.localized
-
-# IDE specific files
-.vscode/
-.idea/
-
-# Build output and logs
 dist/
-build/
+coverage/
 logs/
-
-# Secrets and sensitive data
-secrets.json
+*.log
 .env
 .env.*
-.zip
-
-
-Explanation of excluded files and directories:
-
+!.env.example
+.DS_Store
+.vscode/
+.idea/
