@@ -44,10 +44,40 @@ export function tenantGuard(schema: Schema) {
   });
 }
 
+/** Collections only the old (v1) app creates. Several other names (sites, products, payments…) overlap with v2. */
+const LEGACY_MARKERS = ["engineers", "supervisors", "materialinwards", "labourattendances"];
+
+/**
+ * Refuses to run against a database that still holds data from the old app. v1 and v2 share six collection
+ * names with different document shapes, so building v2 indexes there fails (or worse, mixes data).
+ * Old data must be copied into a fresh database with `npm run migrate:legacy`.
+ */
+export async function assertNotLegacyDatabase(conn = mongoose.connection): Promise<void> {
+  const names = (await conn.db!.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name);
+  const found = LEGACY_MARKERS.filter((n) => names.includes(n));
+  if (found.length) {
+    throw new Error(
+      `Database "${conn.name}" contains data from the old ConstructEase app (${found.join(", ")}). ` +
+        `Point MONGODB_URI at a new, empty database — put a database name in the URI, e.g. …mongodb.net/constructease?… — ` +
+        `then copy the old data with: npm run migrate:legacy -- --source-uri "<old MongoDB URI>" --dry-run`,
+    );
+  }
+}
+
 export async function connectDb(uri = config.MONGODB_URI): Promise<void> {
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000 });
+  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000, autoIndex: false });
+  try {
+    await assertNotLegacyDatabase();
+  } catch (err) {
+    await mongoose.disconnect();
+    throw err;
+  }
+  if (mongoose.connection.name === "test" && config.NODE_ENV !== "test") {
+    logger.warn('MONGODB_URI has no database name, so MongoDB is using "test". Add one, e.g. /constructease.');
+  }
   logger.info({ db: mongoose.connection.name }, "mongo connected");
-  await Promise.all(Object.values(mongoose.models).map((m) => m.syncIndexes()));
+  // createIndexes only adds missing indexes; it never drops ones it doesn't know about (syncIndexes would).
+  await Promise.all(Object.values(mongoose.models).map((m) => m.createIndexes()));
 }
 
 export async function disconnectDb(): Promise<void> {

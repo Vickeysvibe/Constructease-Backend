@@ -9,7 +9,7 @@ import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
 import mongoose from "mongoose";
 import { config } from "@/core/config";
-import { connectDb, disconnectDb } from "@/core/db";
+import { assertNotLegacyDatabase, connectDb, disconnectDb } from "@/core/db";
 import { DEFAULT_TZ, dayjs } from "@/core/units";
 import { migrate } from "./migrate";
 
@@ -35,7 +35,10 @@ async function main() {
   const dryRun = Boolean(values["dry-run"]);
 
   // A dry run must not write anything, not even indexes: connect without syncing them.
-  if (dryRun) await mongoose.connect(config.MONGODB_URI, { serverSelectionTimeoutMS: 10_000, autoIndex: false, autoCreate: false });
+  if (dryRun) {
+    await mongoose.connect(config.MONGODB_URI, { serverSelectionTimeoutMS: 10_000, autoIndex: false, autoCreate: false });
+    await assertNotLegacyDatabase(); // the target must be the new database, never the old one
+  }
   else await connectDb();
   const source = await mongoose.createConnection(sourceUri, { serverSelectionTimeoutMS: 10_000 }).asPromise();
   try {

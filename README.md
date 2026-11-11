@@ -22,6 +22,10 @@ CE_OWNER_PASSWORD='<password>' npm run org:create -- --org "Acme Builders" --nam
 
 Or the whole stack: `JWT_ACCESS_SECRET=$(openssl rand -base64 48) docker compose up --build`.
 
+### Database
+
+Use a **new, empty database** for this version and name it in the URI (`…/constructease?…`). Without a name MongoDB uses `test`, which is where the old app keeps its data. The old app and this one share six collection names (`sites`, `products`, `notes`, `payments`, `purchaseorders`, `purchasereturns`) with different shapes, so the API refuses to start on a database that still has old-app data. Copy old data across with `npm run migrate:legacy` (see docs/MIGRATION.md); the old database is only read.
+
 ## Checks
 
 ```bash

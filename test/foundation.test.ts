@@ -271,3 +271,18 @@ describe("imports and exports", () => {
     expect((await api().get(`/api/v1/jobs/${job.body.jobId}`).set(auth(w.tokens.ownerB))).status).toBe(404);
   });
 });
+
+describe("startup safety", () => {
+  it("refuses a database that still has old-app data and leaves its indexes alone", async () => {
+    const { assertNotLegacyDatabase } = await import("@/core/db");
+    const mongoose = (await import("mongoose")).default;
+    const legacy = mongoose.connection.useDb("legacy_guard_check", { useCache: false });
+    await legacy.db!.collection("engineers").insertOne({ email: "old@example.com" });
+    await legacy.db!.collection("products").insertOne({ name: "Cement" });
+    await expect(assertNotLegacyDatabase(legacy)).rejects.toThrow(/old ConstructEase app.*engineers/s);
+    const indexes = await legacy.db!.collection("products").indexes();
+    expect(indexes.map((i) => i.name)).toEqual(["_id_"]);
+    await legacy.db!.dropDatabase();
+    await expect(assertNotLegacyDatabase()).resolves.toBeUndefined();
+  });
+});
